@@ -1,0 +1,17 @@
+{
+  "name": "make_block_data",
+  "version": "1.0.0",
+  "devDependencies": {
+    "typescript": "^4.8.3"
+  },
+  "type": "module",
+  "dependencies": {
+    "mysql2": "^2.3.3",
+    "web3": "^1.8.0",
+    "socket.io": "^4.5.2",
+    "@pierogi.dev/get_mysql_connection": "^1.0.4",
+    "@pierogi.dev/get_geth_connections": "^1.0.1",
+    "@pierogi.dev/readable_time": "^1.0.6",
+    "socket.io-client": "^4.5.2"
+  }
+}

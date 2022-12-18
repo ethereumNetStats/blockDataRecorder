@@ -1,0 +1,13 @@
+/.idea/
+/externalFunctions/getLatestBlockNumberOnDb.js
+/externalFunctions/sendBlockInfoFromGethToDb.js
+/node_modules/
+/types/socketEvents.js
+/types/types.js
+/.env
+/blockDataRecorder.iml
+/blockDataRecorder.js
+/buildBlockDataRecorderDockerImage.sh
+/Dockerfile
+/ethereum_block_data_recorder.tar
+/runBlockDataRecorder.sh
