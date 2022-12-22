@@ -1,5 +1,5 @@
 {
-  "name": "make_block_data",
+  "name": "blodk_data_recorder",
   "version": "1.0.0",
   "devDependencies": {
     "typescript": "^4.8.3"

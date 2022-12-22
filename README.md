@@ -5,8 +5,13 @@ blockDataRecorderは、[web3js](https://github.com/web3/web3.js)を利用して[
 # 使い方
 以下では、ubuntu server v22.04での使用例を説明します。  
 ただし、下記説明の通りに作業をしてもGethが最新の状態に同期するには少なくとも２〜３週間以上かかります。  
-また、ストレージについても最低でも2TBをSSDで用意する必要があります。
-プログラムの内容のみを知りたい場合はソースコードを参照ください。
+また、ストレージについても最低でも2TBをSSDで用意する必要があります。  
+プログラムの内容のみを知りたい場合はソースコードを参照ください。  
+
+**ソースコード**
+- [blockDataRecorder.ts](https://github.com/ethereumNetStats/blockDataRecorder/blob/main/blockDataRecorder.ts)
+- [getLatestBlockNumberOnDb.ts](https://github.com/ethereumNetStats/blockDataRecorder/blob/main/externalFunctions/getLatestBlockNumberOnDb.ts)
+- [sendBlockInfoFromGethToDb.ts](https://github.com/ethereumNetStats/blockDataRecorder/blob/main/externalFunctions/sendBlockInfoFromGethToDb.ts)
 
 ## Dockerのインストール
 まず、下記コマンドを実行してDockerをインストールして下さい。  
@@ -107,7 +112,11 @@ SOCKET_SERVER_ADDRESS=ws://127.0.0.1:6000
 ```shell
 mv ./.envSample ./.env 
 ```
-次にDockerイメージをビルドしてコンテナを起動するためにシェルスクリプト`buildAndRunDockerImage.sh`に実行権限を付与します。
+`.env`の編集が終わったらTypescriptソースを下記コマンドでコンパイルします。
+```shell
+tsc --project tsconfig.json
+```
+コンパイルが終わったらDockerイメージをビルドしてコンテナを起動するためにシェルスクリプト`buildAndRunDockerImage.sh`に実行権限を付与します。
 ```shell
 chmod 755 ./buildAndRunDockerImage.sh
 ```
