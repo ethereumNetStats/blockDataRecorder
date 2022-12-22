@@ -8,6 +8,6 @@
 /blockDataRecorder.iml
 /blockDataRecorder.js
 /buildBlockDataRecorderDockerImage.sh
-/Dockerfile
 /ethereum_block_data_recorder.tar
 /runBlockDataRecorder.sh
+/.gitignore
