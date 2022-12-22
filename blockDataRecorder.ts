@@ -1,70 +1,72 @@
-//Import packages.
+//パッケージのインポート
 import {io} from "socket.io-client";
 
-//Import self-made packages.
-import {gethSocketClient} from "@pierogi.dev/get_geth_connections";
-import {currentTimeReadable} from "@pierogi.dev/readable_time";
+//自作パッケージのインポート
+import {gethSocketClient} from "@ethereum_net_stats/get_geth_connections";
+import {currentTimeReadable} from "@ethereum_net_stats/readable_time";
 import {getLatestBlockNumberOnDb} from "./externalFunctions/getLatestBlockNumberOnDb.js";
 import {sendBlockInfoFromGethToDb} from "./externalFunctions/sendBlockInfoFromGethToDb.js";
 
-//Import types.
+//型定義のインポート
 import type {BlockHeader} from "web3-eth";
 import type {Socket} from "socket.io-client";
 import type {ClientToServerEvents} from "./types/socketEvents";
+import type {blockNumberWithTimestamp} from "./types/types";
 
-//
-//socket.io
-//
+//socket.io-clientの定義
 const socketClientName: string = "blockDataRecorder";
-
 const socketClient: Socket<ClientToServerEvents> = io(`${process.env.SOCKET_SERVER_ADDRESS}`, {
     forceNew: true,
     query: {name: socketClientName}
 });
 
+//ソケットサーバーに接続した時の処理
 socketClient.on('connect', () => {
     console.log(`${currentTimeReadable()} | Connect : socketServer.`);
 });
 
-//
-//Get the latest block number from the DB.
-//
-const tableName: string = "blockData";
+//データベース上の最新のブロックナンバーを取得
+const tableName: string = "ethereum.blockData";
 let latestBlockNumberOnDb: number = await getLatestBlockNumberOnDb(tableName);
 
+//データの記録処理中か否かを示すフラグ
 let isRecording: boolean = false;
 
-//
-//Registering the geth socket event listener.
-//
+//GethのソケットAPIの"newBlockHeaders"イベントをリスニングする
 console.log(`${currentTimeReadable()} | Subscribe : "newBlockHeaders" to the Geth.`);
 gethSocketClient.subscribe("newBlockHeaders", async (err: Error, res: BlockHeader) => {
+    // "newBlockHeaders"イベントを受信したらブロックナンバーを表示
     console.log(`${currentTimeReadable()} | Receive : 'newBlockHeaders' | Block number : ${res.number}`);
 
+    //　データ記録中でなければ、記録処理を開始
     if (!isRecording) {
 
+        // データの記録中を示すようにフラグを書き換え
         isRecording = true;
 
-        //
-        //Get the latest block number on the Geth.
-        //
-        let latestBlockNumberOnGeth = res.number;
+        //"newBlockHeaders"イベントを受信したときに取得するGethの最新ブロックナンバーを代入
+        let latestBlockNumberOnGeth: number = res.number;
 
-        //
-        //When the latest block number in Geth is ahead of the latest block number in DB, the missing record is recorded from Geth to DB.
-        //
+        //Gethの最新ブロックナンバーがデータベースの最新ブロックナンバーよりも進んでいたら記録処理を開始
         if (latestBlockNumberOnGeth - latestBlockNumberOnDb > 0) {
 
             console.log(`${currentTimeReadable()} | The latest block number on the DB : ${latestBlockNumberOnDb} | The latest block number on the Geth : ${latestBlockNumberOnGeth}`);
 
+            // 記録を開始するブロックナンバーを代入
             let initialBlockNumber: number = ++latestBlockNumberOnDb;
 
             console.log(`${currentTimeReadable()} | Block number to record block info : ${initialBlockNumber} - ${latestBlockNumberOnGeth}`);
 
+            // データベースの記録がGethの最新ブロックに追いつくまでforループを実行
             for (let i = 0; i <= latestBlockNumberOnGeth - latestBlockNumberOnDb; i++) {
 
-                let blockNumberWithTimestamp = await sendBlockInfoFromGethToDb(initialBlockNumber + i, tableName);
+                // Gethからデータベースにブロックデータを転送する関数の呼び出し
+                let blockNumberWithTimestamp: blockNumberWithTimestamp = await sendBlockInfoFromGethToDb(initialBlockNumber + i, tableName);
+
+                // データ転送が終わったらブロック番号をインクリメント
                 latestBlockNumberOnDb = initialBlockNumber + i;
+
+                // ソケットサーバーにイベントとデータを送信
                 socketClient.emit('newBlockDataRecorded', blockNumberWithTimestamp);
                 console.log(`${currentTimeReadable()} | Emit : 'newBlockDataRecorded' | To : socketServer`);
 
@@ -79,7 +81,7 @@ gethSocketClient.subscribe("newBlockHeaders", async (err: Error, res: BlockHeade
         isRecording = false;
 
     } else {
-
+        // Gethとデータベースの最新ブロック番号が一致していたら"newBlockHeaders"イベントを無視して記録処理をスキップ
         console.log(`${currentTimeReadable()} | Ignore : The recording is currently running. This event emitting is ignored.`);
 
     }
