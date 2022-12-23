@@ -1,6 +1,8 @@
 # blockDataRecorderについて  
 blockDataRecorderは、[web3js](https://github.com/web3/web3.js)を利用して[Geth](https://github.com/ethereum/go-ethereum)にアクセスし、
 イーサリアムネットワークのブロック情報をMySQLデータベースに記録します。  
+より詳細には、blockDataRecorderは、Gethから`newBlockHeader`ソケットイベントを受信したときに、受信したイベントに含まれるブロックナンバーの情報をMySQLデータベースに記録し、
+記録が完了したことを[socketServer]()に通知します。
 
 # 使い方
 以下では、ubuntu server v22.04での使用例を説明します。  
@@ -9,9 +11,9 @@ blockDataRecorderは、[web3js](https://github.com/web3/web3.js)を利用して[
 プログラムの内容のみを知りたい場合はソースコードを参照ください。  
 
 **ソースコード**
-- [blockDataRecorder.ts](https://github.com/ethereumNetStats/blockDataRecorder/blob/main/blockDataRecorder.ts)
-- [getLatestBlockNumberOnDb.ts](https://github.com/ethereumNetStats/blockDataRecorder/blob/main/externalFunctions/getLatestBlockNumberOnDb.ts)
-- [sendBlockInfoFromGethToDb.ts](https://github.com/ethereumNetStats/blockDataRecorder/blob/main/externalFunctions/sendBlockInfoFromGethToDb.ts)
+- メイン：[blockDataRecorder.ts](https://github.com/ethereumNetStats/blockDataRecorder/blob/main/blockDataRecorder.ts)
+- 外部関数：[getLatestBlockNumberOnDb.ts](https://github.com/ethereumNetStats/blockDataRecorder/blob/main/externalFunctions/getLatestBlockNumberOnDb.ts)
+- 外部関数：[sendBlockInfoFromGethToDb.ts](https://github.com/ethereumNetStats/blockDataRecorder/blob/main/externalFunctions/sendBlockInfoFromGethToDb.ts)
 
 ## Dockerのインストール
 まず、下記コマンドを実行してDockerをインストールして下さい。  
@@ -48,11 +50,14 @@ sudo docker run -itd -v $HOME/eth2:/data -v $HOME/eth2/jwt.hex:/jwt.hex -p 4000:
 以上の手順を実行すると、GethがPrysmと連携してイーサリアムネットワークとの同期が始まります。
 
 ## MySQLデータベースの準備
-下記コマンドでMySQLのコンテナを起動して下さい。なお、MySQLのオプションでは任意のパスワードを設定して下さい。  
+下記コマンドで、`/ethereum`と`/eth2`と同じ階層にディレクトリを作成して下さい。  
+```shell
+mkdir mysql
+```
+次に下記コマンドでMySQLのコンテナを起動して下さい。なお、MySQLのオプションでは任意のパスワードを設定して下さい。  
 ```shell
 sudo docker run --name mysql -p 3308:3306 -v $HOME/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=password -d mysql:8.0.27
 ```
-
 MySQLのコンテナが起動したら下記クエリを実行して`ethereum`データベースを作成します。
 ```mysql
 CREATE DATABASE ethereum;
@@ -112,7 +117,11 @@ SOCKET_SERVER_ADDRESS=ws://127.0.0.1:6000
 ```shell
 mv ./.envSample ./.env 
 ```
-`.env`の編集が終わったらTypescriptソースを下記コマンドでコンパイルします。
+`.env`の編集が終わったら関連パッケージのインストールをします。
+```shell
+npm install
+```
+関連パッケージのインストールが終わったらTypescriptソースを下記コマンドでコンパイルします。
 ```shell
 tsc --project tsconfig.json
 ```
