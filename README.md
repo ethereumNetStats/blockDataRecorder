@@ -3,7 +3,7 @@ blockDataRecorderは、[web3js](https://github.com/web3/web3.js)を利用して[
 このイベントと共に受信したブロック情報を[node-mysql2](https://github.com/sidorares/node-mysql2)を利用してMySQLデータベースに記録します。  
 より詳細には、blockDataRecorderは、Gethから`newBlockHeader`イベントを受信したときに、受信したイベントと共に受け取るブロック情報をMySQLデータベースに記録し、
 記録が完了したことを示す`newBlockDataRecorded`イベントを発行します。
-この`newBlockDataRecorded`イベントは[socketServer](https://github.com/ethereumNetStats/socketServer)によって、[minutelyBasicNetStatsRecorder](https://github.com/ethereumNetStats/minutelyBasicNetStatsRecorder)、[hourlyBasicNetStatsRecorder](https://github.com/ethereumNetStats/hourlyBasicNetStatsRecorder)、[dailyBasicNetStatsRecorder](https://github.com/ethereumNetStats/dailyBasicNetStatsRecorder)、及び[weeklyBasicNetStatsRecorder](https://github.com/ethereumNetStats/weeklyBasicNetStatsRecorder)
+この`newBlockDataRecorded`イベントは[socketServer](https://github.com/ethereumNetStats/socketServer)によって、各データレコーダー([minutelyBasicNetStatsRecorder](https://github.com/ethereumNetStats/minutelyBasicNetStatsRecorder)、[hourlyBasicNetStatsRecorder](https://github.com/ethereumNetStats/hourlyBasicNetStatsRecorder)、[dailyBasicNetStatsRecorder](https://github.com/ethereumNetStats/dailyBasicNetStatsRecorder)、及び[weeklyBasicNetStatsRecorder](https://github.com/ethereumNetStats/weeklyBasicNetStatsRecorder))
 に中継されます。  
 
 # 使い方
