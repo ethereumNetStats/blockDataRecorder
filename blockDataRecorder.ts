@@ -1,38 +1,38 @@
-//パッケージのインポート
+// パッケージのインポート
 import {io} from "socket.io-client";
 
-//自作パッケージのインポート
+// 自作パッケージのインポート
 import {gethSocketClient} from "@ethereum_net_stats/get_geth_connections";
 import {currentTimeReadable} from "@ethereum_net_stats/readable_time";
 import {getLatestBlockNumberOnDb} from "./externalFunctions/getLatestBlockNumberOnDb.js";
 import {sendBlockInfoFromGethToDb} from "./externalFunctions/sendBlockInfoFromGethToDb.js";
 
-//型定義のインポート
+// 型定義のインポート
 import type {BlockHeader} from "web3-eth";
 import type {Socket} from "socket.io-client";
 import type {ClientToServerEvents} from "./types/socketEvents";
 import type {blockNumberWithTimestamp} from "./types/types";
 
-//socket.io-clientの定義
+// socket.io-clientの定義
 const socketClientName: string = "blockDataRecorder";
 const socketClient: Socket<ClientToServerEvents> = io(`${process.env.SOCKET_SERVER_ADDRESS}`, {
     forceNew: true,
     query: {name: socketClientName}
 });
 
-//ソケットサーバーに接続した時の処理
+// ソケットサーバーに接続した時の処理
 socketClient.on('connect', () => {
     console.log(`${currentTimeReadable()} | Connect : socketServer.`);
 });
 
-//データベース上の最新のブロックナンバーを取得
+// データベース上の最新のブロックナンバーを取得
 const tableName: string = "ethereum.blockData";
 let latestBlockNumberOnDb: number = await getLatestBlockNumberOnDb(tableName);
 
-//データの記録処理中か否かを示すフラグ
+// データの記録処理中か否かを示すフラグ
 let isRecording: boolean = false;
 
-//GethのソケットAPIの"newBlockHeaders"イベントをリスニングする
+// GethのソケットAPIの"newBlockHeaders"イベントをリスニングする
 console.log(`${currentTimeReadable()} | Subscribe : "newBlockHeaders" to the Geth.`);
 gethSocketClient.subscribe("newBlockHeaders", async (err: Error, res: BlockHeader) => {
     // "newBlockHeaders"イベントを受信したらブロックナンバーを表示
@@ -78,10 +78,11 @@ gethSocketClient.subscribe("newBlockHeaders", async (err: Error, res: BlockHeade
 
         }
 
+        // データの記録処理が終了したらフラグを元に戻す
         isRecording = false;
 
     } else {
-        // Gethとデータベースの最新ブロック番号が一致していたら"newBlockHeaders"イベントを無視して記録処理をスキップ
+        // データの記録処理が進行中の場合はイベント受信を無視する
         console.log(`${currentTimeReadable()} | Ignore : The recording is currently running. This event emitting is ignored.`);
 
     }

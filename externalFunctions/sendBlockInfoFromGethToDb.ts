@@ -8,7 +8,7 @@ import type {blockNumberWithTimestamp, recordData} from "../types/types";
 import type {Pool} from "@ethereum_net_stats/get_mysql_connection";
 import type {BlockTransactionString} from "web3-eth";
 
-// データベースへのプールコネクションを確率
+// データベースへのプールコネクションを作成
 const pool: Pool = await getMysqlConnection(false);
 
 // 関数"sendBlockInfoFromGethToDb"の宣言

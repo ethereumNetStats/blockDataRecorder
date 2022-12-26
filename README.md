@@ -1,8 +1,10 @@
 # blockDataRecorderについて  
-blockDataRecorderは、[web3js](https://github.com/web3/web3.js)を利用して[Geth](https://github.com/ethereum/go-ethereum)にアクセスし、
-イーサリアムネットワークのブロック情報をMySQLデータベースに記録します。  
-より詳細には、blockDataRecorderは、Gethから`newBlockHeader`ソケットイベントを受信したときに、受信したイベントに含まれるブロックナンバーの情報をMySQLデータベースに記録し、
-記録が完了したことを[socketServer]()に通知します。
+blockDataRecorderは、[web3js](https://github.com/web3/web3.js)を利用して[Geth](https://github.com/ethereum/go-ethereum)からソケットイベントを受信し、
+このイベントと共に受信したブロック情報を[node-mysql2](https://github.com/sidorares/node-mysql2)を利用してMySQLデータベースに記録します。  
+より詳細には、blockDataRecorderは、Gethから`newBlockHeader`イベントを受信したときに、受信したイベントと共に受け取るブロック情報をMySQLデータベースに記録し、
+記録が完了したことを示す`newBlockDataRecorded`イベントを発行します。
+この`newBlockDataRecorded`イベントは[socketServer](https://github.com/ethereumNetStats/socketServer)によって、[minutelyBasicNetStatsRecorder](https://github.com/ethereumNetStats/minutelyBasicNetStatsRecorder)、[hourlyBasicNetStatsRecorder](https://github.com/ethereumNetStats/hourlyBasicNetStatsRecorder)、[dailyBasicNetStatsRecorder](https://github.com/ethereumNetStats/dailyBasicNetStatsRecorder)、及び[weeklyBasicNetStatsRecorder](https://github.com/ethereumNetStats/weeklyBasicNetStatsRecorder)
+に中継されます。  
 
 # 使い方
 以下では、ubuntu server v22.04での使用例を説明します。  
@@ -26,13 +28,14 @@ sudo apt update
 sudo apt install docker-ce
 ```
 
-## [Geth](https://github.com/ethereum/go-ethereum)を使用するための準備
+## Gethを使用するための準備
 下記コマンドでホームディレクトリ内にディレクトリを２つ用意して下さい。
 ```shell
 mkdir ethereum
 mkdir eth2
 ```
-次に`eth2`ディレクトリに移動して下記コマンドでGethとPrysmの認証に使う`jwt.hex`を作成して下さい。
+次に`eth2`ディレクトリに移動して下記コマンドでGethと[Prysm](https://github.com/prysmaticlabs/prysm)の認証に使う`jwt.hex`を作成して下さい。  
+PrysmはGethと協働してEthereum 2.0を構成するためのビーコンノードとバリデータクライアントですが、このプロジェクトではGethを動作させるためにのみ用いています。
 ```shell
 cd ./eth2
 openssl rand -hex 32 | tr -d "\n" > "jwt.hex"
