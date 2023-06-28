@@ -13,15 +13,12 @@ import type { Socket } from 'socket.io-client'
 import type { ClientToServerEvents } from './types/socketEvents'
 import type { blockNumberWithTimestamp } from './types/types'
 
-// socket.io-clientの定義
+// socket.io-clientのインスタンス生成
 const socketClientName: string = 'blockDataRecorder'
-const socketClient: Socket<ClientToServerEvents> = io(
-  `${process.env.SOCKET_SERVER_DOCKER_ADDRESS}`,
-  {
-    forceNew: true,
-    query: { name: socketClientName },
-  },
-)
+const socketClient: Socket<ClientToServerEvents> = io(`${process.env.SOCKET_SERVER_ADDRESS}`, {
+  forceNew: true,
+  query: { name: socketClientName, attribute: 'blockDataRecorder' },
+})
 
 // ソケットサーバーに接続した時の処理
 socketClient.on('connect', () => {
@@ -30,74 +27,45 @@ socketClient.on('connect', () => {
 
 // データベース上の最新のブロックナンバーを取得
 const tableName: string = 'ethereum.blockData'
-let latestBlockNumberOnDb: number = await getLatestBlockNumberOnDb(tableName)
 
 // データの記録処理中か否かを示すフラグ
 let isRecording: boolean = false
 
 // GethのソケットAPIの"newBlockHeaders"イベントをリスニングする
-console.log(
-  `${currentTimeReadable()} | Subscribe : "newBlockHeaders" to the Geth.`,
-)
+console.log(`${currentTimeReadable()} | Subscribe : "newBlockHeaders" to the Geth.`)
 gethDockerSocketClient
   .subscribe('newBlockHeaders', async (err: Error, res: BlockHeader) => {
     // "newBlockHeaders"イベントを受信したらブロックナンバーを表示
     console.log(
-      `${currentTimeReadable()} | Receive : 'newBlockHeaders' | Block number : ${
-        res.number
-      }`,
+      `${currentTimeReadable()} | Receive : 'newBlockHeaders' | Block number : ${res.number}`,
     )
-
-    //　データ記録中でなければ、記録処理を開始
+    // データの記録処理中でなければ記録処理を開始
     if (!isRecording) {
-      // データの記録中を示すようにフラグを書き換え
+      // データの記録処理中であることを示すフラグを立てる
       isRecording = true
-
-      //"newBlockHeaders"イベントを受信したときに取得するGethの最新ブロックナンバーを代入
-      let latestBlockNumberOnGeth: number = res.number
-
-      //Gethの最新ブロックナンバーがデータベースの最新ブロックナンバーよりも進んでいたら記録処理を開始
-      if (latestBlockNumberOnGeth - latestBlockNumberOnDb > 0) {
-        console.log(
-          `${currentTimeReadable()} | The latest block number on the DB : ${latestBlockNumberOnDb} | The latest block number on the Geth : ${latestBlockNumberOnGeth}`,
-        )
-
-        // 記録を開始するブロックナンバーを代入
-        let initialBlockNumber: number = ++latestBlockNumberOnDb
-
-        console.log(
-          `${currentTimeReadable()} | Block number to record block info : ${initialBlockNumber} - ${latestBlockNumberOnGeth}`,
-        )
-
-        // データベースの記録がGethの最新ブロックに追いつくまでforループを実行
-        for (
-          let i = 0;
-          i <= latestBlockNumberOnGeth - latestBlockNumberOnDb;
-          i++
-        ) {
-          // Gethからデータベースにブロックデータを転送する関数の呼び出し
-          let blockNumberWithTimestamp: blockNumberWithTimestamp =
-            await sendBlockInfoFromGethToDb(initialBlockNumber + i, tableName)
-
-          // データ転送が終わったらブロック番号をインクリメント
-          latestBlockNumberOnDb = initialBlockNumber + i
-
-          // ソケットサーバーにイベントとデータを送信
+      // データベース上の最新のブロックナンバーを取得
+      let latestBlockNumberOnDb: number = await getLatestBlockNumberOnDb(tableName)
+      // データベース上の最新のブロックナンバーとGethから受信したブロックナンバーの差分を取得
+      let blockNumberDifference: number = res.number - latestBlockNumberOnDb
+      // 記録結果を格納する変数宣言
+      let blockNumberWithTimestamp: blockNumberWithTimestamp
+      // データベース上の最新のブロックナンバーとGethから受信したブロックナンバーの差分が1以上の場合
+      // データを記録する
+      if (blockNumberDifference >= 1) {
+        for (let i = latestBlockNumberOnDb + 1; i <= res.number; i++) {
+          //   ブロックデータをデータベースに記録
+          blockNumberWithTimestamp = await sendBlockInfoFromGethToDb(i, tableName)
+          //   ブロックデータをソケットサーバーに送信
           socketClient.emit('newBlockDataRecorded', blockNumberWithTimestamp)
-          console.log(
-            `${currentTimeReadable()} | Emit : 'newBlockDataRecorded' | To : socketServer`,
-          )
         }
       } else {
-        console.log(
-          `${currentTimeReadable()} | No data : There is no data for recording this time.`,
-        )
+        //  データベース上の最新のブロックナンバーとGethから受信したブロックナンバーの差分が0の場合
+        //  そのことを表示
+        console.log(`${currentTimeReadable()} | No new block.`)
       }
-
-      // データの記録処理が終了したらフラグを元に戻す
+      // データの記録処理中であることを示すフラグを下ろす
       isRecording = false
     } else {
-      // データの記録処理が進行中の場合はイベント受信を無視する
       console.log(
         `${currentTimeReadable()} | Ignore : The recording is currently running. This event emitting is ignored.`,
       )

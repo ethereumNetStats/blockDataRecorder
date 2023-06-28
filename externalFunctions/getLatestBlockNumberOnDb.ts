@@ -27,9 +27,8 @@ export const getLatestBlockNumberOnDb = async (
 
   // データベースに記録されている最新のブロック番号を確認
   let [queryResult] = await pool.query<RowDataPacket[]>(`SELECT number
-                                                           from ${tableName}
-                                                           ORDER BY number DESC
-                                                           LIMIT 1`)
+                                                         from ${tableName}
+                                                         ORDER BY number DESC LIMIT 1`)
 
   // SQLクエリの処理時間の計測終了
   let endTime = performance.now()
